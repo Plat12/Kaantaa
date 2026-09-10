@@ -1,0 +1,115 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'net.plat12'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.11.0'
+}
+
+javafx {
+    version = '21'
+    // The plugin automatically adds the correct platform-specific classifier
+    modules = ['javafx.controls', 'javafx.fxml']
+}
+
+application {
+    // MUST be the plain Launcher, not the JavaFX Application subclass
+    mainClass = 'net.plat12.kaantaa.Launcher'
+}
+
+// ---------------------------------------------------------------------------
+// 1. Fat JAR: bundles your code + Gson + JavaFX (with native libs inside)
+// ---------------------------------------------------------------------------
+tasks.register('fatJar', Jar) {
+    archiveClassifier = 'all'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+    // Include compiled classes and resources
+    from sourceSets.main.output
+    // Include all runtime dependencies (Gson, JavaFX jars, platform natives)
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    // Exclude signature files so the fat JAR loads without security errors
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
+}
+
+// ---------------------------------------------------------------------------
+// 2. jpackage: wraps the fat JAR + a minimal JRE into a native app image
+// ---------------------------------------------------------------------------
+tasks.register('packageApp', Exec) {
+    dependsOn 'fatJar'
+
+    def outputDir  = layout.buildDirectory.dir('jpackage').get().asFile
+    def stagingDir = layout.buildDirectory.dir('jpackage-input').get().asFile
+    def appName    = 'Kaantaa'
+    def mainJar    = tasks.fatJar.archiveFile.get().asFile.name
+    def jpackage   = "${System.getProperty('java.home')}/bin/jpackage"
+
+    // Only re-run when the fat jar changes
+    inputs.file tasks.fatJar.archiveFile
+    outputs.dir outputDir
+
+    doFirst {
+        delete outputDir, stagingDir
+        stagingDir.mkdirs()
+        // jpackage only accepts ONE jar in --input, so stage the fat jar
+        copy {
+            from tasks.fatJar.archiveFile
+            into stagingDir
+        }
+    }
+
+
+    def pkgType = project.findProperty('type') ?: 'app-image'
+    commandLine = [
+            jpackage,
+            '--input',        stagingDir.absolutePath,
+            '--dest',         outputDir.absolutePath,
+            '--name',         appName,
+            '--main-jar',     mainJar,
+            '--main-class',   application.mainClass.get(),
+            '--type',         pkgType,
+            '--app-version',  project.version.toString(),
+            '--vendor',       'Plat12',
+            '--description',  'Kaantaa',
+            // JavaFX needs this when it lives on the classpath
+            '--java-options', '--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED'
+    ] as List<String>
+
+    // Add a menu shortcut + desktop shortcut for installers
+    if (pkgType != 'app-image') {
+        if (System.getProperty('os.name').toLowerCase().contains('win')) {
+            commandLine += ['--win-menu', '--win-shortcut']
+        } else if (System.getProperty('os.name').toLowerCase().contains('linux')) {
+            commandLine += ['--linux-shortcut']
+        }
+    }
+}
+
+// `gradle build` produces the runnable app image in build/jpackage/Kaantaa/
+tasks.named('build') {
+    finalizedBy 'packageApp'
+}
+
+// Handy alias
+tasks.register('dist') {
+    dependsOn 'packageApp'
+}

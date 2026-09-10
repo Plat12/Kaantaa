@@ -1,0 +1,212 @@
+KAANTAA USER GUIDE
+
+Welcome to Kaantaa, a simple and powerful tool for translating Minecraft mod language files. This guide will walk you through everything you need to know to use Kaantaa effectively.
+
+1. WHAT IS KAANTAA?
+
+Kaantaa is a Java desktop application that helps you translate Minecraft mod language files (such as en_us.json) into other languages. It provides a clean interface for editing translations, tracking and saving your progress, and exporting a ready-to-use language file for your mod or modpack.
+
+Key features:
+- Load any Minecraft language .json file.
+- Edit translations in a user-friendly table.
+- Automatic detection of placeholder mismatches.
+- Save and resume your work with progress files.
+- Update existing translations when a mod updates.
+- Export finished translations as a language file.
+
+2. QUICK START
+
+1. Launch the app. You'll see a drop screen with a dashed box.
+2. Drag and drop a .json language file (for example, en_us.json) onto that box, or click "Browse for a file" to select one manually.
+3. The main translation view will open, showing all the text entries from that file.
+4. Start translating! Click on an entry in the left table, type your translation in the right panel, and mark it as finished when done.
+5. When you're ready, enter a language code (for example, es_es for Spanish, de_de for German) and click Export Translation.
+
+3. UNDERSTANDING THE INTERFACE
+
+The main screen is split into two halves:
+
+LEFT PANEL - THE ENTRY LIST
+This is where you see all the text keys from the original language file.
+
+- Search bar: Type to filter entries. You can also choose where to search (Everywhere in the whole entry, in the translation key, in the original translation, or in your own translation).
+- Sort & Filter controls: Sort by key alphabetically, order of appearance in the file, original translation alphabetically, or your translation alphabetically. Filter by status (all entries, unfinished entries, finished entries, entries with placeholders in the original translation).
+- "Only placeholder issues": Shows only entries where the placeholder count doesn't match.
+- 1st column: Toggle between showing the original translation or the key.
+- Progress bar: Shows how many entries you've marked as finished.
+- Table columns:
+    - Original/Key: The original English text (or the key if toggled).
+    - Translation: Your translation (shown in italics if you haven't changed it yet).
+    - !: A warning symbol appears if the translation has a placeholder mismatch.
+    - Done: Checkbox to mark the entry as finished.
+- Click any row to load it into the editor on the right.
+
+RIGHT PANEL - EDITOR & TOOLS
+This area contains three sections:
+
+1. Detail Editor (top)
+    - Shows the key and the original text (read-only).
+    - A text area where you type your translation.
+    - A placeholder status label below the text area (more on that later).
+    - A checkbox to mark the entry as finished.
+
+2. Find and Replace
+    - Replace text across all entries or only visible ones.
+
+3. Export & Save
+    - Language code field: Enter the target language code, language or country of origin (for example, it_it, Italian, Italiano, Italia). Autocomplete suggestions will appear.
+    - Save Progress: Saves your work (including unfinished entries) as a special _kaantaa.json file.
+    - Export Translation: Exports only the translated strings to a standard language file (for example, es_es.json).
+
+TOP BAR
+- ← Back to menu: Returns to the drop screen.
+- Guide: Opens this guide inside the app.
+- Light/Dark Mode: Toggles the theme.
+
+4. KEYS AND PLACEHOLDERS
+
+Keys are code values that identify that translation entry; they may provide you with additional context as to what that translation entry represents. For instance:
+
+"advancement.essenceofminecraft.activate_blast_furnace": "Thermal Foundation"
+
+The key here, advancement.essenceofminecraft.activate_blast_furnace, tells us that this entry probably represents the title for an achievement for activating a Blast Furnace in the Essence of Minecraft mod. We also know that that advancement is called "Thermal Foundation" in English.
+
+Placeholders, on the other hand, are special codes that the game replaces with dynamic content. They are essential in translations that have them, meaning if you get them wrong, the game will display broken text.
+
+4.1 WHAT ARE PLACEHOLDERS?
+
+Placeholders look like %s, %d, %1$s, %2$s, and similar. They stand for values that are inserted later, such as a player's name, an item count, or a number.
+
+For example, an original line might be:
+
+Hello %s, you have %d new messages.
+
+Here %s is a placeholder for a text value (like a player name), and %d is for a number (like a message count).
+
+4.2 WHY ORDER MARKERS MATTER (THE %1$s, %2$s SYNTAX)
+
+Some languages need to reorder words. Suppose the original English sentence is:
+
+%s gave %d diamonds to %s.
+
+In another language, the grammar might require the two names to appear in a different order. To allow this, placeholders can include order markers:
+
+%1$s gave %3$d diamonds to %2$s.
+
+- %1$s = first argument (the giver)
+- %2$s = second argument (the receiver)
+- %3$d = third argument (the diamond count)
+
+In your translation, you can rearrange these placeholders freely. For example, in a language that puts the receiver first, you might write:
+
+%2$s received %3$d diamonds from %1$s.
+
+The numbers tell the game which original argument goes where. As long as you keep the same numbers and types, the translation will work.
+
+4.3 HOW KAANTAA CHECKS PLACEHOLDERS
+
+Kaantaa counts all placeholders in the original and in your translation. It does not check order or type, only that the total number is equal.
+
+- If the counts match → green label
+- If counts differ → red label
+- If there are no placeholders → gray label
+
+A warning icon (!) also appears in the table for entries with mismatches. You can filter to see only those with issues using the "Only placeholder issues" checkbox.
+
+4.4 COMMON PLACEHOLDER TYPES
+
+Code   Meaning                 Example
+%s     String (text)           Hello %s
+%d     Decimal integer         You have %d coins
+%f     Floating-point number   Speed: %f
+%1$s   First string argument   %1$s loves %2$s
+%2$d   Second integer argument %1$s has %2$d items
+
+Important: When translating, always copy placeholders exactly as they appear. You may move them around, but you must not edit them (for example, don't write %s as %jarona).
+
+5. EDITING TRANSLATIONS
+
+1. Select an entry from the left table.
+2. The key and original text appear in the detail editor. The translation area is pre-filled with the original text (so you can see what you're changing).
+3. Type your translation in the text area. As you type, the placeholder label updates automatically.
+4. If the placeholder counts match and you're satisfied, check "Mark as finished".
+5. Move to the next entry (the table selection will not change automatically; you can click another row).
+
+BULK EDITING WITH FIND & REPLACE
+
+- Enter the text you want to find in the Find field.
+- Optionally enter a replacement in Replace with.
+- Check Match case to be case-sensitive.
+- Check Only replace in visible entries if you want to limit to the current filtered list.
+- Click Replace All. The changes are applied and the table refreshes.
+
+6. SAVING AND EXPORTING
+
+SAVING PROGRESS
+
+Progress files store everything: original text, your translation, finished status, and original order. They have the suffix _kaantaa.json.
+
+- Click Save Progress.
+- Enter a base name (for example, my_translation). The file saved will be my_translation_kaantaa.json in the same folder as the original language file.
+- You can later resume by dropping that progress file onto the initial drop screen.
+
+EXPORTING THE FINAL TRANSLATION
+
+Export creates a standard Minecraft language file that contains only the translated strings (not the original English). The file will be named <language_code>.json (for example, es_es.json).
+
+To export, you must meet three conditions:
+
+1. All entries are marked as finished -> the progress bar must show N / N.
+2. No placeholder mismatches -> the warning column must be empty.
+3. A valid language code -> enter one of the standard Minecraft locale codes (see autocomplete suggestions). Examples: en_us, de_de, fr_fr, es_es, pt_br, ru_ru, zh_cn, ja_jp, etc.
+
+If any condition is not met, clicking Export will show an error message listing the problems.
+
+When everything is correct, click Export Translation. A success dialog will show the output location.
+
+AUTO-SAVE
+
+Kaantaa quietly saves a progress file when you exit the app. It uses the last language code you typed (or autosave if empty) and saves it as <code>_kaantaa.json next to the original file. This prevents losing work if you close accidentally.
+
+7. UPDATING AN EXISTING TRANSLATION
+
+When a mod updates, the original language file may change: new keys may be added, old ones removed, or original text changed. Kaantaa can merge your old progress with the new language file.
+
+1. From the drop screen, click Update existing translation (or go to the Update tab if already there).
+2. You can either:
+    - Drag and drop both files at once (one _kaantaa.json and one new language .json), or
+    - Use the button: first select the old progress file, then the new language file.
+3. The app analyzes the differences and shows a confirmation dialog:
+    - Entries to be added
+    - Entries to be removed
+    - Entries whose original text changed (your old translation will be kept, but the entry will be marked as unfinished so you can review it)
+4. Click OK to proceed. The merged translation opens in the main editor.
+
+This feature is especially handy for keeping translations up-to-date with mod updates.
+
+8. TROUBLESHOOTING
+
+Problem: Drop a file and get "No translatable text was found"
+Likely Cause: The JSON isn't a flat map of string→string, or it's empty.
+Solution: Ensure it's a Minecraft language file (for example, en_us.json). It should contain key-value pairs where values are strings.
+
+Problem: Error "Could not load the old progress file"
+Likely Cause: The progress file is corrupted or not a Kaantaa file.
+Solution: Re-save from the app, or check the file's integrity.
+
+Problem: Placeholder mismatch error but the translation looks correct
+Likely Cause: You may have accidentally added or removed a % character, or changed the placeholder type.
+Solution: Compare the original and your translation character by character. Count every % symbol.
+
+Problem: Language code suggestions not appearing
+Likely Cause: You typed something that doesn't match known codes, or the field lost focus.
+Solution: Start typing a known code like es and wait a moment; suggestions appear in a popup.
+
+9. FINAL TIPS
+
+- Always keep placeholders intact. If unsure, copy the original text and edit only the surrounding words.
+- Use the "Only placeholder issues" filter frequently to catch mistakes early.
+- Save progress often. Even though auto-save exists, manual saves are safer.
+- When updating, always review the changed entries (marked as unfinished) because the original context may have shifted.
+
+Happy translating!

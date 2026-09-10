@@ -1,0 +1,56 @@
+name: Build Native Installers
+
+on:
+  push:
+    tags:
+      - 'v*'        # Triggers on version tags like v1.0.0
+  workflow_dispatch: # Or manual trigger from GitHub UI
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            type: msi
+            artifact: Kaantaa-{version}-windows.msi
+          - os: macos-13
+            type: dmg
+            artifact: Kaantaa-{version}-macos.dmg
+          - os: ubuntu-22.04
+            type: deb
+            artifact: Kaantaa-{version}-linux.deb
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Windows requires WiX Toolset for MSI generation
+      - name: Install WiX Toolset (Windows)
+        if: runner.os == 'Windows'
+        run: choco install wixtoolset -y
+
+      # Linux requires fakeroot for .deb generation
+      - name: Install fakeroot (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot
+
+      - name: Build fat JAR
+        run: ./gradlew fatJar
+
+      - name: Package installer
+        run: ./gradlew packageApp -Ptype=${{ matrix.type }}
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/jpackage/

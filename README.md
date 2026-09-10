@@ -14,6 +14,7 @@ Kaantaa is a desktop application for translating Minecraft Mods.
 - Placeholder (%s) tracking 
 - Save your progress as _kaantaa.json files to resume your translation later
 - Update an existing _kaantaa.json progress file with a new version of a .json language file if the mod you're translating updates
+- Export your translation as a ready-to-use .json file
 
 # Installation
 In the Releases tab, select the version you wish to install and download the installer for your operating system (Linux, Windows or MacOS), then run the installer.

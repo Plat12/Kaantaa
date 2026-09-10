@@ -11,7 +11,42 @@ on:
         required: true
         type: string
       notes:
-        description: 'Release notes (markdown)'
+        description: 'Release notes (markdown). Leave blank to auto-generate.'
+        required: false
+        type: string
+        default: ''
+      winDirChooser:
+        description: 'Windows: show "Choose install directory" dialog'
+        required: false
+        type: boolean
+        default: true
+      winShortcut:
+        description: 'Windows: offer desktop shortcut'
+        required: false
+        type: boolean
+        default: true
+      winMenu:
+        description: 'Windows: offer Start-menu shortcut'
+        required: false
+        type: boolean
+        default: true
+      winShortcutPrompt:
+        description: 'Windows: show shortcut-prompt dialog (requires shortcut and/or menu)'
+        required: false
+        type: boolean
+        default: true
+      winPerUserInstall:
+        description: 'Windows: install per-user (no admin prompt)'
+        required: false
+        type: boolean
+        default: false
+      linuxShortcut:
+        description: 'Linux: create .desktop / application-menu shortcut'
+        required: false
+        type: boolean
+        default: true
+      installDir:
+        description: 'Optional install dir. Absolute on Linux/macOS .pkg; relative sub-path on Windows. Blank = default.'
         required: false
         type: string
         default: ''
@@ -49,6 +84,7 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
         run: choco install wixtoolset -y --no-progress
@@ -57,9 +93,11 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot
 
+
       - name: Make gradlew executable (Unix)
         if: runner.os != 'Windows'
         run: chmod +x gradlew
+
 
       - name: Build fat JAR
         shell: bash
@@ -67,7 +105,17 @@ jobs:
 
       - name: Package installer
         shell: bash
-        run: ./gradlew packageApp -Ptype=${{ matrix.type }} --no-daemon --stacktrace
+        run: |
+          ./gradlew packageApp \
+            -Ptype=${{ matrix.type }} \
+            -PwinDirChooser=${{ inputs.winDirChooser }} \
+            -PwinShortcut=${{ inputs.winShortcut }} \
+            -PwinMenu=${{ inputs.winMenu }} \
+            -PwinShortcutPrompt=${{ inputs.winShortcutPrompt }} \
+            -PwinPerUserInstall=${{ inputs.winPerUserInstall }} \
+            -PlinuxShortcut=${{ inputs.linuxShortcut }} \
+            -PinstallDir='${{ inputs.installDir }}' \
+            --no-daemon --stacktrace
 
       - name: Upload installer as workflow artifact
         uses: actions/upload-artifact@v4
@@ -92,7 +140,7 @@ jobs:
       contents: write
 
     steps:
-      - name: Resolve version and notes
+      - name: Resolve version
         id: meta
         shell: bash
         run: |
@@ -106,6 +154,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: installers
+
+      - name: List downloaded files (debug)
+        run: find installers -type f
 
       - name: Create release
         uses: softprops/action-gh-release@v2

@@ -23,37 +23,28 @@ dependencies {
 
 javafx {
     version = '21'
-    // The plugin automatically adds the correct platform-specific classifier
     modules = ['javafx.controls', 'javafx.fxml']
 }
 
 application {
-    // MUST be the plain Launcher, not the JavaFX Application subclass
     mainClass = 'net.plat12.kaantaa.Launcher'
 }
 
-// ---------------------------------------------------------------------------
-// 1. Fat JAR: bundles your code + Gson + JavaFX (with native libs inside)
-// ---------------------------------------------------------------------------
+
 tasks.register('fatJar', Jar) {
     archiveClassifier = 'all'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     manifest {
         attributes 'Main-Class': application.mainClass.get()
     }
-    // Include compiled classes and resources
     from sourceSets.main.output
-    // Include all runtime dependencies (Gson, JavaFX jars, platform natives)
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
-    // Exclude signature files so the fat JAR loads without security errors
     exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
 }
 
-// ---------------------------------------------------------------------------
-// 2. jpackage: wraps the fat JAR + a minimal JRE into a native app image
-// ---------------------------------------------------------------------------
+
 tasks.register('packageApp', Exec) {
     dependsOn 'fatJar'
 
@@ -62,24 +53,30 @@ tasks.register('packageApp', Exec) {
     def appName    = 'Kaantaa'
     def mainJar    = tasks.fatJar.archiveFile.get().asFile.name
     def jpackage   = "${System.getProperty('java.home')}/bin/jpackage"
+    def pkgType    = project.findProperty('type') ?: 'app-image'
+    def os         = org.gradle.internal.os.OperatingSystem.current()
 
-    // Only re-run when the fat jar changes
+    def winDirChooser     = (project.findProperty('winDirChooser')     ?: 'true')
+    def winShortcut       = (project.findProperty('winShortcut')       ?: 'true')
+    def winMenu           = (project.findProperty('winMenu')           ?: 'true')
+    def winShortcutPrompt = (project.findProperty('winShortcutPrompt') ?: 'true')
+    def winPerUserInstall = (project.findProperty('winPerUserInstall') ?: 'false')
+    def linuxShortcut     = (project.findProperty('linuxShortcut')     ?: 'true')
+    def installDir        = project.findProperty('installDir')
+
     inputs.file tasks.fatJar.archiveFile
     outputs.dir outputDir
 
     doFirst {
         delete outputDir, stagingDir
         stagingDir.mkdirs()
-        // jpackage only accepts ONE jar in --input, so stage the fat jar
         copy {
             from tasks.fatJar.archiveFile
             into stagingDir
         }
     }
 
-
-    def pkgType = project.findProperty('type') ?: 'app-image'
-    commandLine = [
+    def args = [
             jpackage,
             '--input',        stagingDir.absolutePath,
             '--dest',         outputDir.absolutePath,
@@ -90,26 +87,33 @@ tasks.register('packageApp', Exec) {
             '--app-version',  project.version.toString(),
             '--vendor',       'Plat12',
             '--description',  'Kaantaa',
-            // JavaFX needs this when it lives on the classpath
             '--java-options', '--add-exports=javafx.graphics/com.sun.javafx.application=ALL-UNNAMED'
-    ] as List<String>
+    ]
 
-    // Add a menu shortcut + desktop shortcut for installers
-    if (pkgType != 'app-image') {
-        if (System.getProperty('os.name').toLowerCase().contains('win')) {
-            commandLine += ['--win-menu', '--win-shortcut']
-        } else if (System.getProperty('os.name').toLowerCase().contains('linux')) {
-            commandLine += ['--linux-shortcut']
-        }
+
+    if (installDir) {
+        args += ['--install-dir', installDir.toString()]
     }
+
+    if (os.isWindows() && pkgType != 'app-image') {
+        if (winDirChooser.toBoolean())     args += '--win-dir-chooser'
+        if (winShortcut.toBoolean())       args += '--win-shortcut'
+        if (winMenu.toBoolean())           args += '--win-menu'
+        if (winShortcutPrompt.toBoolean()) args += '--win-shortcut-prompt'
+        if (winPerUserInstall.toBoolean()) args += '--win-per-user-install'
+    }
+
+    if (os.isLinux() && pkgType != 'app-image') {
+        if (linuxShortcut.toBoolean()) args += '--linux-shortcut'
+    }
+
+    commandLine = args
 }
 
-// `gradle build` produces the runnable app image in build/jpackage/Kaantaa/
 tasks.named('build') {
     finalizedBy 'packageApp'
 }
 
-// Handy alias
 tasks.register('dist') {
     dependsOn 'packageApp'
 }

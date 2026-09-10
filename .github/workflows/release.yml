@@ -3,29 +3,35 @@ name: Build Native Installers
 on:
   push:
     tags:
-      - 'v*'        # Triggers on version tags like v1.0.0
-  workflow_dispatch: # Or manual trigger from GitHub UI
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         include:
           - os: windows-2022
             type: msi
-            artifact: Kaantaa-{version}-windows.msi
-          - os: macos-13
+            label: Windows (msi)
+            artifact: Kaantaa-windows
+          - os: macos-14
             type: dmg
-            artifact: Kaantaa-{version}-macos.dmg
+            label: macOS (dmg)
+            artifact: Kaantaa-macos
           - os: ubuntu-22.04
             type: deb
-            artifact: Kaantaa-{version}-linux.deb
-
-    runs-on: ${{ matrix.os }}
+            label: Linux (deb)
+            artifact: Kaantaa-linux
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -33,24 +39,40 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # Windows requires WiX Toolset for MSI generation
+
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
-        run: choco install wixtoolset -y
+        run: choco install wixtoolset -y --no-progress
 
-      # Linux requires fakeroot for .deb generation
       - name: Install fakeroot (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot
 
+
+      - name: Make gradlew executable (Unix)
+        if: runner.os != 'Windows'
+        run: chmod +x gradlew
+
+
       - name: Build fat JAR
-        run: ./gradlew fatJar
+        shell: bash
+        run: ./gradlew fatJar --no-daemon --stacktrace
 
       - name: Package installer
-        run: ./gradlew packageApp -Ptype=${{ matrix.type }}
+        shell: bash
+        run: ./gradlew packageApp -Ptype=${{ matrix.type }} --no-daemon --stacktrace
+
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: build/jpackage/
+          path: |
+            build/jpackage/*.msi
+            build/jpackage/*.exe
+            build/jpackage/*.dmg
+            build/jpackage/*.pkg
+            build/jpackage/*.deb
+            build/jpackage/*.rpm
+          if-no-files-found: error
+          retention-days: 14

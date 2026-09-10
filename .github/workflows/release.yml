@@ -5,6 +5,16 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.0.0)'
+        required: true
+        type: string
+      notes:
+        description: 'Release notes (markdown)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build:
@@ -39,7 +49,6 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-
       - name: Install WiX Toolset (Windows)
         if: runner.os == 'Windows'
         run: choco install wixtoolset -y --no-progress
@@ -48,11 +57,9 @@ jobs:
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot
 
-
       - name: Make gradlew executable (Unix)
         if: runner.os != 'Windows'
         run: chmod +x gradlew
-
 
       - name: Build fat JAR
         shell: bash
@@ -62,8 +69,7 @@ jobs:
         shell: bash
         run: ./gradlew packageApp -Ptype=${{ matrix.type }} --no-daemon --stacktrace
 
-
-      - name: Upload installer
+      - name: Upload installer as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -76,3 +82,44 @@ jobs:
             build/jpackage/*.rpm
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Resolve version and notes
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download all installer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: installers
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.version }}
+          name: Kaantaa ${{ steps.meta.outputs.version }}
+          body: ${{ inputs.notes }}
+          generate_release_notes: ${{ inputs.notes == '' }}
+          draft: false
+          prerelease: false
+          files: |
+            installers/**/*.msi
+            installers/**/*.exe
+            installers/**/*.dmg
+            installers/**/*.pkg
+            installers/**/*.deb
+            installers/**/*.rpm

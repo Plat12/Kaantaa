@@ -1,6 +1,6 @@
 <img width="2048" height="542" alt="banner" src="https://github.com/user-attachments/assets/f02e473f-e5ee-4b6b-b25b-77902e1669d0" />
 
-Kaantaa is a desktop application for translating Minecraft Mods.
+Kaantaa (Pronounced Kahn-tah) is a desktop application for translating Minecraft Mods.
 
 <img width="1920" height="1038" alt="image" src="https://github.com/user-attachments/assets/dfc59982-6c07-4ec4-8a9d-c43328434f8d" />
 
